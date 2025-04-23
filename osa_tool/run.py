@@ -1,16 +1,15 @@
-import logging
 import os
-
 from typing import List
-
-from rich.logging import RichHandler
 
 from osa_tool.analytics.report_maker import ReportGenerator
 from osa_tool.analytics.sourcerank import SourceRank
 from osa_tool.arguments_parser import get_cli_args
+from osa_tool.config.settings import ConfigLoader, GitSettings
+from osa_tool.convertion.notebook_converter import NotebookConverter
 from osa_tool.github_agent.github_agent import GithubAgent
 from osa_tool.osatreesitter.docgen import DocGen
 from osa_tool.osatreesitter.osa_treesitter import OSA_TreeSitter
+<<<<<<< HEAD
 from osa_tool.readmeai.config.settings import ConfigLoader, GitSettings
 from osa_tool.readmeai.readmegen_article.config.settings import ArticleConfigLoader
 from osa_tool.readmeai.readme_core import readme_agent
@@ -18,18 +17,15 @@ from osa_tool.readmeai.utils.file_handler import FileHandler
 from osa_tool.translation.dir_translator import DirectoryTranslator
 from osa_tool.convertion.notebook_converter import NotebookConverter
 from osa_tool.utils import delete_repository, osa_project_root, parse_folder_name
-
-for handler in logging.root.handlers[:]:
-    logging.root.removeHandler(handler)
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(message)s",
-    datefmt="[%X]",
-    handlers=[RichHandler()],
+=======
+from osa_tool.readmegen.readme_core import readme_agent
+from osa_tool.translation.dir_translator import DirectoryTranslator
+from osa_tool.utils import (
+    delete_repository,
+    logger,
+    parse_folder_name
 )
-
-logger = logging.getLogger("rich")
+>>>>>>> ebc0349e0f0dc1e78405c57378098610cc4c277d
 
 
 def main():
@@ -50,7 +46,7 @@ def main():
 
     try:
         # Load configurations and update
-        config = load_configuration(repo_url, api, base_url, model_name, article)
+        config = load_configuration(repo_url, api, base_url, model_name)
 
         # Initialize GitHub agent and perform operations
         github_agent = GithubAgent(repo_url)
@@ -101,9 +97,8 @@ def convert_notebooks(
 
     Args:
         config_loader: The configuration object which contains repo_url.
-        notebook_paths: A list of paths to the notebooks to be converted (or None). If empty,
-                        the converter will process the current repository.
-
+        notebook_paths: A list of paths to the notebooks to be converted (or None).
+                        If empty, the converter will process the current repository.
     """
     try:
         converter = NotebookConverter()
@@ -173,7 +168,14 @@ def generate_docstrings(config_loader: ConfigLoader) -> None:
 
 
 def load_configuration(
+<<<<<<< HEAD
     repo_url: str, api: str, base_url: str, model_name: str, article: str | None
+=======
+        repo_url: str,
+        api: str,
+        base_url: str,
+        model_name: str,
+>>>>>>> ebc0349e0f0dc1e78405c57378098610cc4c277d
 ) -> ConfigLoader:
     """
     Loads configuration for osa_tool.
@@ -183,11 +185,11 @@ def load_configuration(
         api: LLM API service provider.
         base_url: URL of the provider compatible with API OpenAI
         model_name: Specific LLM model to use.
-        article: Link to the pdf file of the article. Can be None.
 
     Returns:
         config_loader: The configuration object which contains settings for osa_tool.
     """
+<<<<<<< HEAD
     if article is None:
 
         config_loader = ConfigLoader(
@@ -197,6 +199,9 @@ def load_configuration(
         config_loader = ArticleConfigLoader(
             config_dir=os.path.join(osa_project_root(), "config", "with_article")
         )
+=======
+    config_loader = ConfigLoader()
+>>>>>>> ebc0349e0f0dc1e78405c57378098610cc4c277d
 
     config_loader.config.git = GitSettings(repository=repo_url)
     config_loader.config.llm = config_loader.config.llm.model_copy(
