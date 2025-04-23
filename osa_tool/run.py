@@ -14,13 +14,10 @@ from osa_tool.osatreesitter.osa_treesitter import OSA_TreeSitter
 from osa_tool.readmeai.config.settings import ConfigLoader, GitSettings
 from osa_tool.readmeai.readmegen_article.config.settings import ArticleConfigLoader
 from osa_tool.readmeai.readme_core import readme_agent
+from osa_tool.readmeai.utils.file_handler import FileHandler
 from osa_tool.translation.dir_translator import DirectoryTranslator
 from osa_tool.convertion.notebook_converter import NotebookConverter
-from osa_tool.utils import (
-    delete_repository,
-    osa_project_root,
-    parse_folder_name
-)
+from osa_tool.utils import delete_repository, osa_project_root, parse_folder_name
 
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
@@ -65,7 +62,7 @@ def main():
         # .ipynb to .py convertion
         if notebook_paths is not None:
             convert_notebooks(config, notebook_paths)
-        
+
         # Repository Analysis Report generation
         sourcerank = SourceRank(config)
         analytics = ReportGenerator(config, sourcerank)
@@ -79,9 +76,13 @@ def main():
         # Docstring generation
         generate_docstrings(config)
 
+        # License compiling
+        if not sourcerank.license_presence():
+            compile_license_file(sourcerank)
+
         # Readme generation
         readme_agent(config, article)
-        
+
         github_agent.commit_and_push_changes()
         github_agent.create_pull_request()
 
@@ -93,7 +94,9 @@ def main():
         logger.error("Error: %s", e, exc_info=True)
 
 
-def convert_notebooks(config_loader: ConfigLoader, notebook_paths: List[str] | None = None) -> None:
+def convert_notebooks(
+    config_loader: ConfigLoader, notebook_paths: List[str] | None = None
+) -> None:
     """Converts Jupyter notebooks to Python scripts based on provided paths.
 
     Args:
@@ -110,12 +113,48 @@ def convert_notebooks(config_loader: ConfigLoader, notebook_paths: List[str] | N
         else:
             for path in notebook_paths:
                 converter.process_path(path)
-    
+
     except Exception as e:
         logger.error("Error while converting notebooks: %s", repr(e), exc_info=True)
 
 
-def generate_docstrings(config_loader) -> None:
+def compile_license_file(sourcerank: SourceRank):
+    """
+    Compiles a license file for a software project using a specified template.
+
+    This method takes a SourceRank object as input, extracts necessary information such as creation year and author
+    to compile a license file based on a predefined template. The compiled license file is then saved in the repository
+    directory of the SourceRank object.
+
+    Parameters:
+        - sourcerank: SourceRank object containing metadata about the software project.
+
+    Returns:
+        None. The compiled license file is saved in the repository directory of the SourceRank object.
+    """
+    try:
+        logger.info("LICENSE was not resolved, compiling started...")
+        license_template_path = os.path.join(
+            os.getcwd(), "osa_tool", "docs", "license_template", "licenses.toml"
+        )
+        license_template = FileHandler().read_toml(license_template_path)
+        license_type = "bsd"
+        year = sourcerank.metadata.created_at[:4]
+        author = sourcerank.metadata.owner
+        license_text = license_template[license_type]["template"].format(
+            year=year, author=author
+        )
+        license_output_path = os.path.join(sourcerank.repo_path, "LICENSE")
+        with open(license_output_path, "w") as f:
+            f.write(license_text)
+        logger.info(
+            f"""LICENSE has been successfully compiled at {os.path.join(sourcerank.repo_path, "LICENSE")}"""
+        )
+    except Exception as e:
+        logger.error("Error while compiling LICENSE: %s", e, exc_info=True)
+
+
+def generate_docstrings(config_loader: ConfigLoader) -> None:
     """Generates a docstrings for .py's classes and methods of the provided repository.
 
     Args:
@@ -123,23 +162,20 @@ def generate_docstrings(config_loader) -> None:
 
     """
     try:
-        repo_url = config_loader.config.git.repository
-        ts = OSA_TreeSitter(parse_folder_name(repo_url))
+        # repo_url = config_loader.config.git.repository
+        # ts = OSA_TreeSitter(parse_folder_name(repo_url))
+        repo_url = "./osa_tool/run.py"
+        ts = OSA_TreeSitter(repo_url)
         res = ts.analyze_directory(ts.cwd)
         dg = DocGen(config_loader)
         dg.process_python_file(res)
 
     except Exception as e:
-        logger.error("Error while docstring generation: %s", repr(e),
-                     exc_info=True)
+        logger.error("Error while docstring generation: %s", repr(e), exc_info=True)
 
 
 def load_configuration(
-        repo_url: str,
-        api: str,
-        base_url: str,
-        model_name: str,
-        article: str | None
+    repo_url: str, api: str, base_url: str, model_name: str, article: str | None
 ) -> ConfigLoader:
     """
     Loads configuration for osa_tool.
@@ -157,20 +193,16 @@ def load_configuration(
     if article is None:
 
         config_loader = ConfigLoader(
-            config_dir=os.path.join(osa_project_root(), "config",
-                                    "standart"))
+            config_dir=os.path.join(osa_project_root(), "config", "standart")
+        )
     else:
         config_loader = ArticleConfigLoader(
-            config_dir=os.path.join(osa_project_root(), "config",
-                                    "with_article"))
+            config_dir=os.path.join(osa_project_root(), "config", "with_article")
+        )
 
     config_loader.config.git = GitSettings(repository=repo_url)
     config_loader.config.llm = config_loader.config.llm.model_copy(
-        update={
-            "api": api,
-            "url": base_url,
-            "model": model_name
-        }
+        update={"api": api, "url": base_url, "model": model_name}
     )
     logger.info("Config successfully updated and loaded")
     return config_loader
