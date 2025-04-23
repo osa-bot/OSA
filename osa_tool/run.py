@@ -1,5 +1,6 @@
 import os
 from typing import List
+import tomli
 
 from osa_tool.analytics.report_maker import ReportGenerator
 from osa_tool.analytics.sourcerank import SourceRank
@@ -9,15 +10,6 @@ from osa_tool.convertion.notebook_converter import NotebookConverter
 from osa_tool.github_agent.github_agent import GithubAgent
 from osa_tool.osatreesitter.docgen import DocGen
 from osa_tool.osatreesitter.osa_treesitter import OSA_TreeSitter
-<<<<<<< HEAD
-from osa_tool.readmeai.config.settings import ConfigLoader, GitSettings
-from osa_tool.readmeai.readmegen_article.config.settings import ArticleConfigLoader
-from osa_tool.readmeai.readme_core import readme_agent
-from osa_tool.readmeai.utils.file_handler import FileHandler
-from osa_tool.translation.dir_translator import DirectoryTranslator
-from osa_tool.convertion.notebook_converter import NotebookConverter
-from osa_tool.utils import delete_repository, osa_project_root, parse_folder_name
-=======
 from osa_tool.readmegen.readme_core import readme_agent
 from osa_tool.translation.dir_translator import DirectoryTranslator
 from osa_tool.utils import (
@@ -25,7 +17,6 @@ from osa_tool.utils import (
     logger,
     parse_folder_name
 )
->>>>>>> ebc0349e0f0dc1e78405c57378098610cc4c277d
 
 
 def main():
@@ -132,7 +123,8 @@ def compile_license_file(sourcerank: SourceRank):
         license_template_path = os.path.join(
             os.getcwd(), "osa_tool", "docs", "license_template", "licenses.toml"
         )
-        license_template = FileHandler().read_toml(license_template_path)
+        with open(license_template_path, "rb") as f:
+            license_template = tomli.load(f)
         license_type = "bsd"
         year = sourcerank.metadata.created_at[:4]
         author = sourcerank.metadata.owner
@@ -168,14 +160,10 @@ def generate_docstrings(config_loader: ConfigLoader) -> None:
 
 
 def load_configuration(
-<<<<<<< HEAD
-    repo_url: str, api: str, base_url: str, model_name: str, article: str | None
-=======
         repo_url: str,
         api: str,
         base_url: str,
         model_name: str,
->>>>>>> ebc0349e0f0dc1e78405c57378098610cc4c277d
 ) -> ConfigLoader:
     """
     Loads configuration for osa_tool.
@@ -189,19 +177,7 @@ def load_configuration(
     Returns:
         config_loader: The configuration object which contains settings for osa_tool.
     """
-<<<<<<< HEAD
-    if article is None:
-
-        config_loader = ConfigLoader(
-            config_dir=os.path.join(osa_project_root(), "config", "standart")
-        )
-    else:
-        config_loader = ArticleConfigLoader(
-            config_dir=os.path.join(osa_project_root(), "config", "with_article")
-        )
-=======
     config_loader = ConfigLoader()
->>>>>>> ebc0349e0f0dc1e78405c57378098610cc4c277d
 
     config_loader.config.git = GitSettings(repository=repo_url)
     config_loader.config.llm = config_loader.config.llm.model_copy(
